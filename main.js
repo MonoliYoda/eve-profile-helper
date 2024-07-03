@@ -3,15 +3,20 @@ const path = require('path');
 const fs = require('fs');
 
 const eveDir = path.join(app.getPath('home'), 'AppData', 'Local', 'CCP', 'EVE');
-const tranquilityDir = path.join(eveDir, 'd_eve_sharedcache_tq_tranquility');
-const thunderdomeDir = path.join(eveDir, 'd_eve_sharedcache_thunderdome_thunderdome');
+// const tranquilityDir = path.join(eveDir, 'd_eve_sharedcache_tq_tranquility');
+const tranquilityDir = path.join(eveDir, fs.readdirSync(eveDir).find(dir => dir.endsWith('_tq_tranquility')));
+console.log('Tranquility dir:', tranquilityDir);
+// const thunderdomeDir = path.join(eveDir, 'd_eve_sharedcache_thunderdome_thunderdome');
+const thunderdomeDir = path.join(eveDir, fs.readdirSync(eveDir).find(dir => dir.endsWith('_thunderdome_thunderdome')));
+console.log('Thunderdome dir:', thunderdomeDir);
 const foldersToCheck = [
-    'd_eve_sharedcache_tq_tranquility',
-    'd_eve_sharedcache_thunderdome_thunderdome'
+    fs.readdirSync(eveDir).find(dir => dir.endsWith('_tq_tranquility')),
+    fs.readdirSync(eveDir).find(dir => dir.endsWith('_thunderdome_thunderdome'))
 ];
 
 function checkDirectories() {
     for (const folder of foldersToCheck) {
+        console.log('Checking folder:', folder);
         const folderPath = path.join(eveDir, folder);
         if (!fs.existsSync(folderPath)) {
             return { success: false, missingFolder: folder };
@@ -25,7 +30,7 @@ function getLastModified(server, profile, fileName) {
     const serverDir = server === 'Tranquility' ? tranquilityDir : thunderdomeDir;
     const profileDir = path.join(serverDir, profile);
     const filePath = path.join(profileDir, fileName);
-    
+
     return new Promise((resolve, reject) => {
         fs.stat(filePath, (err, stats) => {
             if (err) {
@@ -66,7 +71,7 @@ function getAccountOptions({ server, profile }) {
     return accounts;
 }
 
-function getCharacterOptions(server, profile ) {
+function getCharacterOptions(server, profile) {
     const serverDir = server === 'Tranquility' ? tranquilityDir : thunderdomeDir;
     const profileDir = path.join(serverDir, profile);
     const characterFiles = fs.readdirSync(profileDir).filter(file => file.startsWith('core_char_') && file.endsWith('.dat'));
