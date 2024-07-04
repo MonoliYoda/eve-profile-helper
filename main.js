@@ -3,12 +3,15 @@ const path = require('path');
 const fs = require('fs');
 
 const eveDir = path.join(app.getPath('home'), 'AppData', 'Local', 'CCP', 'EVE');
+
 // const tranquilityDir = path.join(eveDir, 'd_eve_sharedcache_tq_tranquility');
 const tranquilityDir = path.join(eveDir, fs.readdirSync(eveDir).find(dir => dir.endsWith('_tq_tranquility')));
 console.log('Tranquility dir:', tranquilityDir);
+
 // const thunderdomeDir = path.join(eveDir, 'd_eve_sharedcache_thunderdome_thunderdome');
 const thunderdomeDir = path.join(eveDir, fs.readdirSync(eveDir).find(dir => dir.endsWith('_thunderdome_thunderdome')));
 console.log('Thunderdome dir:', thunderdomeDir);
+
 const foldersToCheck = [
     fs.readdirSync(eveDir).find(dir => dir.endsWith('_tq_tranquility')),
     fs.readdirSync(eveDir).find(dir => dir.endsWith('_thunderdome_thunderdome'))
@@ -61,25 +64,6 @@ function getProfileOptions(server) {
     console.log(`Profiles for ${server}:`, profiles);
     return profiles;
 }
-
-function getAccountOptions({ server, profile }) {
-    const serverDir = server === 'Tranquility' ? tranquilityDir : thunderdomeDir;
-    const profileDir = path.join(serverDir, profile);
-    const accountFiles = fs.readdirSync(profileDir).filter(file => file.startsWith('core_user_') && file.endsWith('.dat'));
-    const accounts = accountFiles.map(file => file.replace('core_user_', '').replace('.dat', ''));
-    console.log(`Accounts for ${server} and profile ${profile}:`, accounts);
-    return accounts;
-}
-
-function getCharacterOptions(server, profile) {
-    const serverDir = server === 'Tranquility' ? tranquilityDir : thunderdomeDir;
-    const profileDir = path.join(serverDir, profile);
-    const characterFiles = fs.readdirSync(profileDir).filter(file => file.startsWith('core_char_') && file.endsWith('.dat'));
-    const characters = characterFiles.map(file => file.replace('core_char_', '').replace('.dat', ''));
-    console.log(`Characters for ${server}, profile ${profile}:`, characters);
-    return characters;
-}
-
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -154,8 +138,6 @@ function copySettings(from, to) {
     });
 }
 
-// IPC handlers to get profile, account, and character options (same as before)
-
 ipcMain.handle('copySettings', async (event, from, to) => {
     try {
         await copySettings(from, to);
@@ -163,6 +145,43 @@ ipcMain.handle('copySettings', async (event, from, to) => {
     } catch (error) {
         console.error('Error copying settings:', error);
         return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('checkBrackets', async (event, server, profile) => {
+    console.log('Checking brackets:', server, profile)
+    const serverDir = server === 'Tranquility' ? tranquilityDir : thunderdomeDir;
+    const prefsPath = path.join(serverDir, profile, 'prefs.ini');
+    console.log('Checking brackets:', prefsPath)
+    try {
+        const lineExists = fs.readFileSync(prefsPath, 'utf-8').includes('bracketsAlwaysShowShipText=1');
+        console.log('Line exists:', lineExists)
+        return lineExists;
+    } catch (error) {
+        console.error('Failed to read prefs.ini:', error);
+        throw new Error('Failed to read prefs.ini');
+    }
+});
+
+ipcMain.handle('toggleBrackets', async (event, server, profile) => {
+    const serverDir = server === 'Tranquility' ? tranquilityDir : thunderdomeDir;
+    const prefsPath = path.join(serverDir, profile, 'prefs.ini');
+    try {
+        const prefsContent = await fs.readFileSync(prefsPath, 'utf8');
+        if (prefsContent.includes('bracketsAlwaysShowShipText=1')) {
+            console.log('Removing brackets line');
+            const newPrefs = prefsContent.replace('\nbracketsAlwaysShowShipText=1', '');
+            fs.writeFileSync(prefsPath, newPrefs, 'utf8');
+            return false;
+        } else {
+            console.log('Adding brackets line');
+            const newPrefs = prefsContent + '\nbracketsAlwaysShowShipText=1';
+            fs.writeFileSync(prefsPath, newPrefs, 'utf8');
+            return true;
+        }
+    } catch (error) {
+        console.error('Failed to toggle brackets:', error);
+        throw new Error('Failed to toggle brackets');
     }
 });
 

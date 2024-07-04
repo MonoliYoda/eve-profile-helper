@@ -10,6 +10,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     const toAccountSelect = document.getElementById('toAccount');
     const fromCharacterSelect = document.getElementById('fromCharacter');
     const toCharacterSelect = document.getElementById('toCharacter');
+    const toggleFromBracketsButton = document.getElementById('toggleFromBracketsButton');
+    const toggleToBracketsButton = document.getElementById('toggleToBracketsButton');
     const copyButton = document.getElementById('copyButton');
 
     function updateCopyButtonState() {
@@ -53,6 +55,17 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    toggleFromBracketsButton.addEventListener('click', async () => {
+        const toggleStatus = await window.api.toggleBrackets(fromServerSelect.value, fromProfileSelect.value);
+        toggleFromBracketsButton.textContent = toggleStatus ? 'Disable Brackets' : 'Enable Brackets';
+    });
+
+    toggleToBracketsButton.addEventListener('click', async () => {
+        const toggleStatus = await window.api.toggleBrackets(toServerSelect.value, toProfileSelect.value);
+        
+        toggleToBracketsButton.textContent = toggleStatus ? 'Disable Brackets' : 'Enable Brackets';
+    });
+
     try {
         console.log('Requesting server options...');
         const servers = await window.api.getServerOptions();
@@ -93,7 +106,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        function handleProfileSelection(profileSelectElement, accountSelectElement, serverSelectElement, characterSelectElement) {
+        function handleProfileSelection(profileSelectElement, accountSelectElement, serverSelectElement, characterSelectElement, enableBracketsButton) {
             profileSelectElement.addEventListener('change', async (event) => {
                 const profile = event.target.value;
                 const server = serverSelectElement.value;
@@ -102,8 +115,12 @@ window.addEventListener('DOMContentLoaded', async () => {
                     accountSelectElement.disabled = false;
                     const accounts = await window.api.getAccountOptions(server, profile);
                     populateAccountSelect(accountSelectElement, accounts);
+                    const toggleStatus = await window.api.checkBrackets(fromServerSelect.value, fromProfileSelect.value);
+                    enableBracketsButton.textContent = toggleStatus ? 'Disable Brackets' : 'Enable Brackets';
+                    enableBracketsButton.disabled = false;
                 } else {
                     accountSelectElement.disabled = true;
+                    enableBracketsButton.disabled = true;
                     accountSelectElement.innerHTML = '<option value="">Select Account</option>';
                     characterSelectElement.disabled = true;
                     characterSelectElement.innerHTML = '<option value="">Select Character</option>';
@@ -174,8 +191,8 @@ window.addEventListener('DOMContentLoaded', async () => {
         handleServerSelection(fromServerSelect, fromProfileSelect, fromAccountSelect, fromCharacterSelect);
         handleServerSelection(toServerSelect, toProfileSelect, toAccountSelect, toCharacterSelect);
 
-        handleProfileSelection(fromProfileSelect, fromAccountSelect, fromServerSelect, fromCharacterSelect);
-        handleProfileSelection(toProfileSelect, toAccountSelect, toServerSelect, toCharacterSelect);
+        handleProfileSelection(fromProfileSelect, fromAccountSelect, fromServerSelect, fromCharacterSelect, toggleFromBracketsButton);
+        handleProfileSelection(toProfileSelect, toAccountSelect, toServerSelect, toCharacterSelect, toggleToBracketsButton);
 
         handleAccountSelection(fromAccountSelect, fromServerSelect, fromProfileSelect, fromCharacterSelect);
         handleAccountSelection(toAccountSelect, toServerSelect, toProfileSelect, toCharacterSelect);
